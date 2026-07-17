@@ -91,7 +91,7 @@ struct HomeView: View {
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .sheet(isPresented: $showProblem) {
+            .navigationDestination(isPresented: $showProblem) {
                 if let problem = currentProblem {
                     RandomProblemView(
                         problem: problem,
