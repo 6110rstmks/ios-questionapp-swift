@@ -67,60 +67,51 @@ class CategoryService: ObservableObject {
             return
         }
         
-        print("📡 カテゴリ取得: Page \(currentPage), Skip \(skip), Limit \(pageSize)")
-        
         do {
             var request = URLRequest(url: url)
             request.httpMethod = "GET"
-            
+
             let (data, response) = try await session.data(for: request)
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
                 errorMessage = "レスポンスの取得に失敗しました"
                 isLoading = false
                 isLoadingMore = false
                 return
             }
-            
-            print("📡 Status Code: \(httpResponse.statusCode)")
-            
+
             guard httpResponse.statusCode == 200 else {
                 errorMessage = "サーバーエラーが発生しました (Status: \(httpResponse.statusCode))"
                 isLoading = false
                 isLoadingMore = false
                 return
             }
-            
+
             let decoder = JSONDecoder()
-            
+
             do {
                 let newCategories = try decoder.decode([SimplifiedCategory].self, from: data)
-                print("📡 取得成功: \(newCategories.count)件")
-                
+
                 if newCategories.isEmpty {
                     hasMoreData = false
-                    print("📡 これ以上データがありません")
                 } else {
                     categories.append(contentsOf: newCategories)
                     currentPage += 1
-                    
+
                     // 取得した件数がpageSizeより少ない場合、これ以上データがない
                     if newCategories.count < pageSize {
                         hasMoreData = false
-                        print("📡 最後のページに到達")
                     }
                 }
-                
+
             } catch {
-                print("📡 デコードエラー: \(error)")
                 errorMessage = "データの形式が正しくありません"
             }
-            
+
             isLoading = false
             isLoadingMore = false
-            
+
         } catch {
-            print("📡 通信エラー: \(error)")
             errorMessage = "エラー: \(error.localizedDescription)"
             isLoading = false
             isLoadingMore = false

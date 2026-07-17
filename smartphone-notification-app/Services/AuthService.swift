@@ -135,8 +135,6 @@ class AuthService: ObservableObject {
                 }
             }
             
-        } catch {
-            print("🔐 Logout Error: \(error)")
-        }
+        } catch {}
     }
 }

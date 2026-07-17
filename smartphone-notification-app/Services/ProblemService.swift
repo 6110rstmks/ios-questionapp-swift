@@ -38,15 +38,11 @@ class ProblemService: ObservableObject {
             return
         }
         
-        print("🎲 問題取得開始")
-        print("🎲 URL: \(url.absoluteString)")
-        print("🎲 Type: \(type), Status: \(solvedStatus), Count: \(problemCount)")
-        
         do {
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
+
             let body: [String: Any] = [
                 "type": type,
                 "solved_status": solvedStatus,
@@ -54,48 +50,34 @@ class ProblemService: ObservableObject {
                 "category_ids": categoryIds,
                 "subcategory_ids": subcategoryIds
             ]
-            
+
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
-            
+
             let (data, response) = try await session.data(for: request)
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
                 errorMessage = "レスポンスの取得に失敗しました"
                 isLoading = false
                 return
             }
-            
-            print("🎲 Status Code: \(httpResponse.statusCode)")
-            
-            let responseString = String(data: data, encoding: .utf8) ?? "データなし"
-            print("🎲 Response Data:")
-            print(responseString)
-            
+
             guard httpResponse.statusCode == 200 else {
                 errorMessage = "サーバーエラーが発生しました (Status: \(httpResponse.statusCode))"
                 isLoading = false
                 return
             }
-            
+
             let decoder = JSONDecoder()
-            
+
             do {
                 problems = try decoder.decode([Question].self, from: data)
-                print("🎲 問題取得成功: \(problems.count)件")
-                
-                for (index, problem) in problems.enumerated() {
-                    print("📝 問題 \(index + 1): ID \(problem.id)")
-                }
-                
             } catch {
-                print("🎲 デコードエラー: \(error)")
                 errorMessage = "データの形式が正しくありません: \(error.localizedDescription)"
             }
-            
+
             isLoading = false
-            
+
         } catch {
-            print("🎲 通信エラー: \(error)")
             errorMessage = "エラー: \(error.localizedDescription)"
             isLoading = false
         }

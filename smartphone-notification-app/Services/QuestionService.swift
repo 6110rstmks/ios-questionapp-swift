@@ -32,56 +32,36 @@ class QuestionService: ObservableObject {
             return
         }
         
-        print("🔍 問題取得開始")
-        print("🔍 URL: \(url.absoluteString)")
-        
         do {
             var request = URLRequest(url: url)
             request.httpMethod = "GET"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
+
             let (data, response) = try await session.data(for: request)
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
                 errorMessage = "レスポンスの取得に失敗しました"
                 isLoading = false
                 return
             }
-            
-            print("🔍 Status Code: \(httpResponse.statusCode)")
-            
-            let responseString = String(data: data, encoding: .utf8) ?? "データなし"
-            print("🔍 Response Data:")
-            print(responseString)
-            
+
             guard httpResponse.statusCode == 200 else {
                 errorMessage = "サーバーエラーが発生しました (Status: \(httpResponse.statusCode))"
                 isLoading = false
                 return
             }
-            
+
             let decoder = JSONDecoder()
-            
+
             do {
                 questions = try decoder.decode([Question].self, from: data)
-                print("🔍 問題取得成功: \(questions.count)件")
-                
-                // 各問題の詳細を表示
-                for (index, question) in questions.enumerated() {
-                    if let memo = question.memo {
-                        print("   メモ: \(memo)")
-                    }
-                }
-                
             } catch {
-                print("🔍 デコードエラー: \(error)")
                 errorMessage = "データの形式が正しくありません: \(error.localizedDescription)"
             }
-            
+
             isLoading = false
-            
+
         } catch {
-            print("🔍 通信エラー: \(error)")
             errorMessage = "エラー: \(error.localizedDescription)"
             isLoading = false
         }

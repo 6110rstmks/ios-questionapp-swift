@@ -37,45 +37,36 @@ class SubcategoryService: ObservableObject {
             return
         }
         
-        print("📂 サブカテゴリ取得開始")
-        print("📂 URL: \(url.absoluteString)")
-        
         do {
             var request = URLRequest(url: url)
             request.httpMethod = "GET"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
+
             let (data, response) = try await session.data(for: request)
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
                 errorMessage = "レスポンスの取得に失敗しました"
                 isLoading = false
                 return
             }
-            
-            print("📂 Status Code: \(httpResponse.statusCode)")
-            print("📂 Response: \(String(data: data, encoding: .utf8) ?? "データなし")")
-            
+
             guard httpResponse.statusCode == 200 else {
                 errorMessage = "サーバーエラーが発生しました (Status: \(httpResponse.statusCode))"
                 isLoading = false
                 return
             }
-            
+
             let decoder = JSONDecoder()
-            
+
             do {
                 subcategories = try decoder.decode([Subcategory].self, from: data)
-                print("📂 サブカテゴリ取得成功: \(subcategories.count)件")
             } catch {
-                print("📂 デコードエラー: \(error)")
                 errorMessage = "データの形式が正しくありません: \(error.localizedDescription)"
             }
-            
+
             isLoading = false
-            
+
         } catch {
-            print("📂 通信エラー: \(error)")
             errorMessage = "エラー: \(error.localizedDescription)"
             isLoading = false
         }

@@ -195,11 +195,7 @@ struct LoginView: View {
     }
     
     private func handleLogin() async {
-        let success = await authService.login(username: username, password: password)
-        if success {
-            // ログイン成功 - AuthServiceのisAuthenticatedがtrueになる
-            print("✅ ログイン成功")
-        }
+        _ = await authService.login(username: username, password: password)
     }
 }
 
