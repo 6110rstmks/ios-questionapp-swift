@@ -1,10 +1,3 @@
-//
-//  RandomProblemView.swift
-//  smartphone-notification-app
-//
-//  Created by sora.sakamoto on 2026/07/17.
-//
-
 import SwiftUI
 
 /// ランダムに出題される問題を表示するビュー
@@ -18,7 +11,11 @@ struct RandomProblemView: View {
     var hasNextProblem: Bool {
         currentIndex < problemService.problems.count - 1
     }
-    
+
+    var hasPreviousProblem: Bool {
+        currentIndex > 0
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -105,48 +102,87 @@ struct RandomProblemView: View {
                         }
                     }
                     
-                    // ナビゲーションボタン
+                    // ナビゲーションボタン（左: 前の問題 / 右: 次の問題）
                     HStack(spacing: 12) {
-                        if hasNextProblem {
-                            Button {
-                                withAnimation {
-                                    currentIndex += 1
-                                    showAnswer = false
-                                }
-                            } label: {
-                                HStack {
-                                    Image(systemName: "arrow.right.circle.fill")
-                                    Text("次の問題")
-                                }
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.green)
-                                .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                        }
-                        
                         Button {
-                            isPresented = false
+                            goToPrevious()
                         } label: {
                             HStack {
-                                Image(systemName: "xmark.circle.fill")
-                                Text("終了")
+                                Image(systemName: "arrow.left.circle.fill")
+                                Text("前の問題")
                             }
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.gray)
+                            .background(Color.blue)
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .opacity(hasPreviousProblem ? 1 : 0.4)
                         }
+                        .disabled(!hasPreviousProblem)
+
+                        Button {
+                            goToNext()
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.right.circle.fill")
+                                Text("次の問題")
+                            }
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.green)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .opacity(hasNextProblem ? 1 : 0.4)
+                        }
+                        .disabled(!hasNextProblem)
                     }
                 }
                 .padding()
             }
             .navigationTitle("問題に挑戦")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isPresented = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 40)
+                    .onEnded { value in
+                        // 横方向の動きが縦方向より明確に大きい場合のみスワイプとして扱う（縦スクロールを妨げない）
+                        guard abs(value.translation.width) > abs(value.translation.height) * 2 else { return }
+                        if value.translation.width > 0 {
+                            goToNext()
+                        } else {
+                            goToPrevious()
+                        }
+                    }
+            )
+        }
+    }
+
+    // 右スワイプ / 「次の問題」ボタンで次へ
+    func goToNext() {
+        guard hasNextProblem else { return }
+        withAnimation {
+            currentIndex += 1
+            showAnswer = false
+        }
+    }
+
+    // 左スワイプ / 「前の問題」ボタンで前へ
+    func goToPrevious() {
+        guard hasPreviousProblem else { return }
+        withAnimation {
+            currentIndex -= 1
+            showAnswer = false
         }
     }
 }
