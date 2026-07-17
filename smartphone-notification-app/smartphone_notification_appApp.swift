@@ -11,7 +11,7 @@ import SwiftUI
 struct smartphone_notification_appApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
     }
 }
