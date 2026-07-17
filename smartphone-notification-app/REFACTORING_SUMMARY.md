@@ -175,9 +175,23 @@ struct MegaView: View {
 - [x] コンポーネントの分離完了
 - [x] 重複コードの削除完了
 - [x] ドキュメント作成完了
+- [x] ビルドエラー修正完了
 - [ ] Xcodeでのファイル整理（ユーザー作業）
 - [ ] ビルド確認（ユーザー作業）
 - [ ] 動作確認（ユーザー作業）
+
+## 🔧 ビルドエラー修正履歴
+
+### 修正完了 (2026/07/18)
+
+1. **RandomProblemView.swift のプレビュー修正**
+   - `Question` モデルの初期化パラメータを修正
+   - `createdAt`, `subcategoryId` → `answerCount`, `lastAnsweredDate`
+
+2. **StatusBadge.swift の再作成**
+   - ファイルが欠落していたため再作成
+
+詳細は [BUILD_FIX.md](./BUILD_FIX.md) を参照してください。
 
 ## 📚 参考リソース
 

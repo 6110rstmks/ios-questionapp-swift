@@ -163,8 +163,8 @@ struct RandomProblemView: View {
             answer: ["回答1", "回答2"],
             memo: "メモ",
             isCorrect: .incorrect,
-            createdAt: "2026-07-17",
-            subcategoryId: 1
+            answerCount: 0,
+            lastAnsweredDate: "2026-07-17"
         ),
         problemService: problemService,
         currentIndex: $currentIndex,
