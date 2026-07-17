@@ -9,6 +9,17 @@ import SwiftUI
 
 struct CategoryListView: View {
     @StateObject private var service = CategoryService()
+    @State private var searchText = ""
+    
+    // 検索でフィルタリングされたカテゴリ
+    var filteredCategories: [SimplifiedCategory] {
+        if searchText.isEmpty {
+            return service.categories
+        }
+        return service.categories.filter { category in
+            category.name.localizedCaseInsensitiveContains(searchText)
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -39,46 +50,65 @@ struct CategoryListView: View {
                         systemImage: "list.bullet",
                         description: Text("カテゴリが見つかりませんでした")
                     )
+                } else if filteredCategories.isEmpty {
+                    // 検索結果が空の場合
+                    ContentUnavailableView(
+                        "検索結果がありません",
+                        systemImage: "magnifyingglass",
+                        description: Text("「\(searchText)」に一致するカテゴリが見つかりませんでした")
+                    )
                 } else {
-                    List(service.categories) { category in
-                        NavigationLink {
-                            CategoryPageView(category: category)
-                        } label: {
-                            HStack {
-                                Image(systemName: category.isPublic ? "globe" : "lock.fill")
-                                    .foregroundStyle(category.isPublic ? .blue : .gray)
+                    List {
+                        ForEach(filteredCategories) { category in
+                            NavigationLink {
+                                CategoryPageView(category: convertToFullCategory(category))
+                            } label: {
+                                SimpleCategoryRow(category: category)
+                            }
+                            .onAppear {
+                                // 検索中は自動読み込みを無効化
+                                guard searchText.isEmpty else { return }
                                 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(category.name)
-                                        .font(.headline)
-                                    
-                                    HStack(spacing: 12) {
-                                        Label("\(category.questionCount)", systemImage: "questionmark.circle")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        
-                                        if category.incorrectedAnsweredQuestionCount > 0 {
-                                            Label("\(category.incorrectedAnsweredQuestionCount)", systemImage: "xmark.circle")
-                                                .font(.caption)
-                                                .foregroundStyle(.red)
-                                        }
+                                // 最後から3番目の要素が表示されたら次のページを読み込む
+                                if category.id == service.categories[max(0, service.categories.count - 3)].id {
+                                    Task {
+                                        await service.loadMoreCategories()
                                     }
                                 }
-                                
-                                Spacer()
-                                
-                                if category.isBlackListed {
-                                    Image(systemName: "hand.raised.fill")
-                                        .foregroundStyle(.red)
-                                        .font(.caption)
-                                }
                             }
-                            .padding(.vertical, 8)
+                        }
+                        
+                        // ローディングインジケーター（検索中は非表示）
+                        if service.isLoadingMore && searchText.isEmpty {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .padding()
+                                Spacer()
+                            }
+                        }
+                        
+                        // 全て読み込み完了メッセージ（検索中は非表示）
+                        if !service.hasMoreData && !service.categories.isEmpty && searchText.isEmpty {
+                            HStack {
+                                Spacer()
+                                Text("全てのカテゴリを読み込みました")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .padding()
+                                Spacer()
+                            }
                         }
                     }
+                    .listStyle(.plain)
                 }
             }
             .navigationTitle("カテゴリ一覧")
+            .searchable(
+                text: $searchText,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "カテゴリを検索"
+            )
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
@@ -103,9 +133,22 @@ struct CategoryListView: View {
             await service.fetchCategories()
         }
     }
+    
+    // SimplifiedCategoryをCategoryに変換（詳細画面用）
+    private func convertToFullCategory(_ simplified: SimplifiedCategory) -> Category {
+        Category(
+            id: simplified.id,
+            name: simplified.name,
+            userId: simplified.userId,
+            isBlackListed: false,
+            isPublic: false,
+            questionCount: 0,
+            incorrectedAnsweredQuestionCount: 0
+        )
+    }
 }
 
-// カテゴリ詳細ビュー（仮）
+// カテゴリ詳細ビュー（今は使用していない）
 struct CategoryDetailView: View {
     let category: Category
     

@@ -109,7 +109,16 @@ struct SubcategoryPageView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(filteredQuestions) { question in
-                            QuestionCard(question: question, showAnswer: showAnswer)
+                            NavigationLink {
+                                QuestionPageView(
+                                    category: category,
+                                    subcategory: subcategory,
+                                    question: question
+                                )
+                            } label: {
+                                QuestionCard(question: question, showAnswer: showAnswer)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding()

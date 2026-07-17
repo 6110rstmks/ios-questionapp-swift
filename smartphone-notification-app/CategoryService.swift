@@ -8,14 +8,31 @@
 import Foundation
 import Combine
 
+// 軽量なカテゴリデータ（問題数などを含まない）
+struct SimplifiedCategory: Codable, Identifiable {
+    let id: Int
+    let name: String
+    let userId: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case userId = "user_id"
+    }
+}
+
 // カテゴリAPIと通信するサービス
 @MainActor
 class CategoryService: ObservableObject {
-    @Published var categories: [Category] = []
+    @Published var categories: [SimplifiedCategory] = []
     @Published var isLoading = false
+    @Published var isLoadingMore = false
     @Published var errorMessage: String?
+    @Published var hasMoreData = true
     
     private let baseURL = "http://52.69.161.160/api"
+    private let pageSize = 20 // 1回で取得する件数
+    private var currentPage = 0
     
     // URLSessionにCookieを保存する設定
     private lazy var session: URLSession = {
@@ -26,16 +43,35 @@ class CategoryService: ObservableObject {
         return URLSession(configuration: config)
     }()
     
-    // カテゴリ一覧を取得
+    // 最初のページを取得
     func fetchCategories() async {
-        isLoading = true
+        categories = []
+        currentPage = 0
+        hasMoreData = true
+        await loadMoreCategories()
+    }
+    
+    // 追加のカテゴリを取得（ページネーション）
+    func loadMoreCategories() async {
+        guard !isLoading && !isLoadingMore && hasMoreData else { return }
+        
+        if currentPage == 0 {
+            isLoading = true
+        } else {
+            isLoadingMore = true
+        }
+        
         errorMessage = nil
         
-        guard let url = URL(string: "\(baseURL)/categories/all_categories") else {
+        let skip = currentPage * pageSize
+        guard let url = URL(string: "\(baseURL)/categories/home?skip=\(skip)&limit=\(pageSize)&categoryWord=&subcategoryWord=&questionWord=&answerWord=") else {
             errorMessage = "無効なURLです"
             isLoading = false
+            isLoadingMore = false
             return
         }
+        
+        print("📡 カテゴリ取得: Page \(currentPage), Skip \(skip), Limit \(pageSize)")
         
         do {
             var request = URLRequest(url: url)
@@ -46,37 +82,52 @@ class CategoryService: ObservableObject {
             guard let httpResponse = response as? HTTPURLResponse else {
                 errorMessage = "レスポンスの取得に失敗しました"
                 isLoading = false
+                isLoadingMore = false
                 return
             }
             
-            print("📡 API Status Code: \(httpResponse.statusCode)")
-            print("📡 API Response: \(String(data: data, encoding: .utf8) ?? "データなし")")
+            print("📡 Status Code: \(httpResponse.statusCode)")
             
             guard httpResponse.statusCode == 200 else {
                 errorMessage = "サーバーエラーが発生しました (Status: \(httpResponse.statusCode))"
                 isLoading = false
+                isLoadingMore = false
                 return
             }
             
-            // レスポンスのデータ構造に応じてデコード方法を調整
             let decoder = JSONDecoder()
             
             do {
-                // 配列として直接デコード
-                categories = try decoder.decode([Category].self, from: data)
-                print("📡 カテゴリ取得成功: \(categories.count)件")
+                let newCategories = try decoder.decode([SimplifiedCategory].self, from: data)
+                print("📡 取得成功: \(newCategories.count)件")
+                
+                if newCategories.isEmpty {
+                    hasMoreData = false
+                    print("📡 これ以上データがありません")
+                } else {
+                    categories.append(contentsOf: newCategories)
+                    currentPage += 1
+                    
+                    // 取得した件数がpageSizeより少ない場合、これ以上データがない
+                    if newCategories.count < pageSize {
+                        hasMoreData = false
+                        print("📡 最後のページに到達")
+                    }
+                }
+                
             } catch {
-                let jsonString = String(data: data, encoding: .utf8) ?? "不明"
                 print("📡 デコードエラー: \(error)")
-                print("📡 API Response: \(jsonString)")
-                errorMessage = "データの形式が正しくありません: \(error.localizedDescription)"
+                errorMessage = "データの形式が正しくありません"
             }
             
             isLoading = false
+            isLoadingMore = false
             
         } catch {
+            print("📡 通信エラー: \(error)")
             errorMessage = "エラー: \(error.localizedDescription)"
             isLoading = false
+            isLoadingMore = false
         }
     }
 }

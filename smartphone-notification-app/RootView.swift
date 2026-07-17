@@ -13,8 +13,8 @@ struct RootView: View {
     var body: some View {
         Group {
             if authService.isAuthenticated {
-                // ログイン済み → カテゴリ一覧を表示
-                CategoryListView()
+                // ログイン済み → ホーム画面を表示
+                HomeView()
                     .environmentObject(authService)
             } else {
                 // 未ログイン → ログイン画面を表示

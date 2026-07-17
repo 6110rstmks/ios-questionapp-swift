@@ -11,6 +11,7 @@ struct CategoryPageView: View {
     let category: Category
     @StateObject private var service = SubcategoryService()
     @State private var searchText = ""
+    @State private var showDatePicker = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -116,6 +117,14 @@ struct CategoryPageView: View {
             await service.fetchSubcategories(byCategoryId: category.id)
         }
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showDatePicker = true
+                } label: {
+                    Label("日付で検索", systemImage: "calendar")
+                }
+            }
+            
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task {
@@ -125,6 +134,9 @@ struct CategoryPageView: View {
                     Image(systemName: "arrow.clockwise")
                 }
             }
+        }
+        .sheet(isPresented: $showDatePicker) {
+            SimpleDatePickerView(category: category)
         }
     }
 }
