@@ -100,48 +100,58 @@ struct RandomProblemView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
-                
-                // ナビゲーションボタン（左: 前の問題 / 右: 次の問題）
-                HStack(spacing: 12) {
-                    Button {
-                        goToPrevious()
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.left.circle.fill")
-                            Text("前の問題")
-                        }
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .opacity(hasPreviousProblem ? 1 : 0.4)
-                    }
-                    .disabled(!hasPreviousProblem)
-
-                    Button {
-                        goToNext()
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.right.circle.fill")
-                            Text("次の問題")
-                        }
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.green)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .opacity(hasNextProblem ? 1 : 0.4)
-                    }
-                    .disabled(!hasNextProblem)
-                }
-                }
+            }
             .padding()
+        }
+        .safeAreaInset(edge: .bottom) {
+            // 前へ/次へボタン。問題文の長さでスクロール量が変わっても位置がぶれないよう画面下部に固定
+            HStack(spacing: 12) {
+                Button {
+                    goToPrevious()
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.left.circle.fill")
+                        Text("前の問題")
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .opacity(hasPreviousProblem ? 1 : 0.4)
+                }
+                .disabled(!hasPreviousProblem)
+
+                Button {
+                    goToNext()
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.right.circle.fill")
+                        Text("次の問題")
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .opacity(hasNextProblem ? 1 : 0.4)
+                }
+                .disabled(!hasNextProblem)
+            }
+            .padding()
+            .background(.bar)
         }
         .navigationTitle("問題に挑戦")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("終了") {
+                    isPresented = false
+                }
+            }
+        }
         .contentShape(Rectangle())
         .simultaneousGesture(
             DragGesture(minimumDistance: 40)
