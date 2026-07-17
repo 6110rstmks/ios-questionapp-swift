@@ -33,15 +33,11 @@ class CategoryService: ObservableObject {
     private let baseURL = "http://52.69.161.160/api"
     private let pageSize = 20 // 1回で取得する件数
     private var currentPage = 0
-    
-    // URLSessionにCookieを保存する設定
-    private lazy var session: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.httpCookieAcceptPolicy = .always
-        config.httpShouldSetCookies = true
-        config.httpCookieStorage = HTTPCookieStorage.shared
-        return URLSession(configuration: config)
-    }()
+    private let session: URLSession
+
+    init(session: URLSession = .cookieEnabled) {
+        self.session = session
+    }
     
     // 最初のページを取得
     func fetchCategories() async {

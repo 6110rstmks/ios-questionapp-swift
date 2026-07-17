@@ -15,15 +15,11 @@ class SubcategoryService: ObservableObject {
     @Published var errorMessage: String?
     
     private let baseURL = "http://52.69.161.160/api/subcategories"
-    
-    // URLSessionにCookieを保存する設定
-    private lazy var session: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.httpCookieAcceptPolicy = .always
-        config.httpShouldSetCookies = true
-        config.httpCookieStorage = HTTPCookieStorage.shared
-        return URLSession(configuration: config)
-    }()
+    private let session: URLSession
+
+    init(session: URLSession = .cookieEnabled) {
+        self.session = session
+    }
     
     // カテゴリIDでサブカテゴリ一覧を取得
     func fetchSubcategories(byCategoryId categoryId: Int, searchWord: String = "") async {

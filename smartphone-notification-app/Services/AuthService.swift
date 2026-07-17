@@ -16,17 +16,10 @@ class AuthService: ObservableObject {
     @Published var errorMessage: String?
     
     private let baseURL = "http://52.69.161.160/api/auth"
-    
-    // URLSessionにCookieを保存する設定
-    private lazy var session: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.httpCookieAcceptPolicy = .always
-        config.httpShouldSetCookies = true
-        config.httpCookieStorage = HTTPCookieStorage.shared
-        return URLSession(configuration: config)
-    }()
-    
-    init() {
+    private let session: URLSession
+
+    init(session: URLSession = .cookieEnabled) {
+        self.session = session
         // アプリ起動時に認証状態をチェック
         Task {
             await checkAuth()
@@ -60,14 +53,10 @@ class AuthService: ObservableObject {
                 return false
             }
             
-            print("🔐 Login Status Code: \(httpResponse.statusCode)")
-            print("🔐 Login Response: \(String(data: data, encoding: .utf8) ?? "データなし")")
             
             if httpResponse.statusCode == 200 {
-                print("🔐 ログイン成功 - ユーザー情報を取得中...")
                 // ログイン成功後、ユーザー情報を取得
                 await checkAuth()
-                print("🔐 認証状態: \(isAuthenticated)")
                 isLoading = false
                 return true
             } else {
@@ -106,21 +95,16 @@ class AuthService: ObservableObject {
                 return
             }
             
-            print("🔐 Auth Check Status Code: \(httpResponse.statusCode)")
-            print("🔐 Auth Check Response: \(String(data: data, encoding: .utf8) ?? "データなし")")
             
             if httpResponse.statusCode == 200 {
                 currentUser = try JSONDecoder().decode(User.self, from: data)
                 isAuthenticated = true
-                print("🔐 認証成功: ユーザー \(currentUser?.username ?? "不明")")
             } else {
                 isAuthenticated = false
                 currentUser = nil
-                print("🔐 認証失敗")
             }
             
         } catch {
-            print("🔐 Auth Check Error: \(error)")
             isAuthenticated = false
             currentUser = nil
         }

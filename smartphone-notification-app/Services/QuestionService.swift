@@ -15,15 +15,11 @@ class QuestionService: ObservableObject {
     @Published var errorMessage: String?
     
     private let baseURL = "http://52.69.161.160/api/questions"
-    
-    // URLSessionにCookieを保存する設定
-    private lazy var session: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.httpCookieAcceptPolicy = .always
-        config.httpShouldSetCookies = true
-        config.httpCookieStorage = HTTPCookieStorage.shared
-        return URLSession(configuration: config)
-    }()
+    private let session: URLSession
+
+    init(session: URLSession = .cookieEnabled) {
+        self.session = session
+    }
     
     // サブカテゴリIDで問題を取得
     func fetchQuestionsBySubcategoryId(_ subcategoryId: Int) async {
@@ -72,16 +68,9 @@ class QuestionService: ObservableObject {
                 
                 // 各問題の詳細を表示
                 for (index, question) in questions.enumerated() {
-                    print("📝 問題 \(index + 1):")
-                    print("   ID: \(question.id)")
-                    print("   問題: \(question.problem)")
-                    print("   回答数: \(question.answer.count)")
-                    print("   ステータス: \(question.statusLabel)")
-                    print("   解答回数: \(question.answerCount)")
                     if let memo = question.memo {
                         print("   メモ: \(memo)")
                     }
-                    print("---")
                 }
                 
             } catch {
