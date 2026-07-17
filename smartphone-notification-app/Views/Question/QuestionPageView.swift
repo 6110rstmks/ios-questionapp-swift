@@ -404,7 +404,6 @@ struct QuestionPageView: View {
     // ステータスをサイクル
     private func cycleStatus() {
         // TODO: APIでステータスを更新
-        print("📝 ステータス更新: \(currentQuestion.statusLabel)")
     }
     
     // 日付フォーマット

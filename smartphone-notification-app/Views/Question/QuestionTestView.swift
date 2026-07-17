@@ -24,14 +24,6 @@ struct QuestionTestView: View {
             }
             .padding()
             .navigationTitle("Question API テスト")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("コンソールをチェック") {
-                        print("📋 Xcodeのコンソール（⌘⇧Y）を確認してください")
-                    }
-                    .font(.caption)
-                }
-            }
         }
     }
     
@@ -54,9 +46,7 @@ struct QuestionTestView: View {
             Button("データ取得") {
                 Task {
                     if let id = Int(testQuestionId) {
-                        print("\n========== Question ID \(id) のテスト開始 ==========")
                         await service.fetchQuestionsBySubcategoryId(id)
-                        print("========== テスト完了 ==========\n")
                     }
                 }
             }
