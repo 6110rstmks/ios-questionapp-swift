@@ -12,15 +12,14 @@ struct QuestionPageView: View {
     let subcategory: Subcategory
     let allQuestions: [Question]
     @State private var currentIndex: Int
-    
+
     @Environment(\.dismiss) private var dismiss
     @State private var showAnswer = false
-    @State private var dragOffset: CGFloat = 0
-    
+
     init(category: Category, subcategory: Subcategory, question: Question, allQuestions: [Question] = []) {
         self.category = category
         self.subcategory = subcategory
-        
+
         // allQuestionsが空の場合は1つだけの配列を作る
         if allQuestions.isEmpty {
             self.allQuestions = [question]
@@ -35,154 +34,168 @@ struct QuestionPageView: View {
             }
         }
     }
-    
+
     private var currentQuestion: Question {
         allQuestions[currentIndex]
     }
-    
+
     private var hasPrevious: Bool {
         currentIndex > 0
     }
-    
+
     private var hasNext: Bool {
         currentIndex < allQuestions.count - 1
     }
-    
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                // 進捗インジケーター
-                if allQuestions.count > 1 {
-                    HStack {
-                        Text("\(currentIndex + 1) / \(allQuestions.count)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        
-                        Spacer()
-                        
-                        ProgressView(value: Double(currentIndex + 1), total: Double(allQuestions.count))
-                            .frame(maxWidth: 200)
-                    }
-                    .padding(.horizontal)
+            VStack(spacing: 24) {
+                // 進捗
+                HStack {
+                    Text("問題 \(currentIndex + 1) / \(allQuestions.count)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    Text("ID: \(currentQuestion.id)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
                 // パンくずリスト
                 breadcrumbSection
-                
-                // メインカード
-                VStack(spacing: 0) {
-                    // ヘッダー
-                    headerSection
-                    
-                    // コンテンツ
-                    VStack(spacing: 24) {
-                        // 問題セクション
-                        problemSection
-                        
-                        Divider()
-                        
-                        // 回答セクション
-                        answerSection
-                        
-                        // メモセクション
-                        if let memo = currentQuestion.memo, !memo.isEmpty {
-                            Divider()
-                            memoSection(memo: memo)
-                        }
-                    }
-                    .padding()
+
+                // 問題カード
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("問題")
+                        .font(.headline)
+                        .foregroundStyle(.indigo)
+
+                    Text(currentQuestion.problem)
+                        .font(.body)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.indigo.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
-                .offset(x: dragOffset)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            dragOffset = value.translation.width
+
+                // 回答セクション
+                VStack(alignment: .leading, spacing: 12) {
+                    Button {
+                        withAnimation {
+                            showAnswer.toggle()
                         }
-                        .onEnded { value in
-                            let threshold: CGFloat = 100
-                            
-                            if value.translation.width < -threshold && hasNext {
-                                // 右から左にスワイプ → 次へ
-                                withAnimation {
-                                    goToNext()
-                                }
-                            } else if value.translation.width > threshold && hasPrevious {
-                                // 左から右にスワイプ → 前へ
-                                withAnimation {
-                                    goToPrevious()
-                                }
-                            }
-                            
-                            withAnimation {
-                                dragOffset = 0
-                            }
+                    } label: {
+                        HStack {
+                            Text(showAnswer ? "回答を隠す" : "回答を表示")
+                                .font(.headline)
+
+                            Spacer()
+
+                            Image(systemName: showAnswer ? "eye.slash" : "eye")
                         }
-                )
-                
-                // ナビゲーションボタン
-                if allQuestions.count > 1 {
-                    HStack(spacing: 12) {
-                        // 前に戻るボタン
-                        Button {
-                            withAnimation {
-                                goToPrevious()
-                            }
-                        } label: {
-                            HStack {
-                                Image(systemName: "chevron.left")
-                                Text("前へ")
-                            }
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(hasPrevious ? Color.blue : Color.gray.opacity(0.3))
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        .disabled(!hasPrevious)
-                        
-                        // 次へ進むボタン
-                        Button {
-                            withAnimation {
-                                goToNext()
-                            }
-                        } label: {
-                            HStack {
-                                Text("次へ")
-                                Image(systemName: "chevron.right")
-                            }
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(hasNext ? Color.blue : Color.gray.opacity(0.3))
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        .disabled(!hasNext)
+                        .padding()
+                        .background(showAnswer ? Color.blue : Color.gray.opacity(0.2))
+                        .foregroundStyle(showAnswer ? .white : .primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .padding(.horizontal)
+
+                    if showAnswer {
+                        VStack(spacing: 8) {
+                            ForEach(Array(currentQuestion.answer.enumerated()), id: \.offset) { index, answer in
+                                Text(answer)
+                                    .font(.body)
+                                    .padding()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.blue.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
+
+                // メモ
+                if let memo = currentQuestion.memo, !memo.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("メモ")
+                            .font(.headline)
+                            .foregroundStyle(.orange)
+
+                        Text(memo)
+                            .font(.body)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.orange.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
                 }
             }
             .padding()
         }
-        .navigationTitle("問題詳細")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+        .safeAreaInset(edge: .bottom) {
+            // 前の問題/次の問題ボタン。問題文の長さでスクロール量が変わっても位置がぶれないよう画面下部に固定
+            HStack(spacing: 12) {
                 Button {
-                    dismiss()
+                    goToPrevious()
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "xmark")
-                        Text("終了")
+                    HStack {
+                        Image(systemName: "arrow.left.circle.fill")
+                        Text("前の問題")
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .opacity(hasPrevious ? 1 : 0.4)
+                }
+                .disabled(!hasPrevious)
+
+                if hasNext {
+                    Button {
+                        goToNext()
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.right.circle.fill")
+                            Text("次の問題")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.green)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                } else {
+                    // 最後の問題では「次の問題」の代わりに終了ボタンを表示
+                    Button {
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("終了する")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.orange)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
             }
-            
+            .padding()
+            .background(.bar)
+        }
+        .navigationTitle("問題詳細")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {
@@ -194,180 +207,74 @@ struct QuestionPageView: View {
                     statusBadge
                 }
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("終了") {
+                    dismiss()
+                }
+            }
         }
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 40)
+                .onEnded { value in
+                    // 横方向の動きが縦方向より明確に大きい場合のみスワイプとして扱う（縦スクロールを妨げない）
+                    guard abs(value.translation.width) > abs(value.translation.height) * 2 else { return }
+                    if value.translation.width > 0 {
+                        goToNext()
+                    } else {
+                        goToPrevious()
+                    }
+                }
+        )
+        // 右スワイプが標準の「戻る」ジェスチャーとして誤認識されないよう無効化する
+        .background(DisableInteractivePopGesture())
         .onChange(of: currentIndex) { oldValue, newValue in
             // インデックスが変わったら回答を隠す
             showAnswer = false
         }
     }
-    
-    private func goToNext() {
-        if hasNext {
+
+    // 右スワイプ / 「次の問題」ボタンで次へ
+    func goToNext() {
+        guard hasNext else { return }
+        withAnimation {
             currentIndex += 1
         }
     }
-    
-    private func goToPrevious() {
-        if hasPrevious {
+
+    // 左スワイプ / 「前の問題」ボタンで前へ
+    func goToPrevious() {
+        guard hasPrevious else { return }
+        withAnimation {
             currentIndex -= 1
         }
     }
-    
+
     // パンくずリスト
     private var breadcrumbSection: some View {
         HStack(spacing: 8) {
             Text(category.name)
-                .font(.subheadline)
-                .foregroundStyle(.blue)
-            
-            Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            
+
+            Image(systemName: "chevron.right")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
             Text(subcategory.name)
-                .font(.subheadline)
-                .foregroundStyle(.blue)
-            
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             Spacer()
-        }
-    }
-    
-    // ヘッダー
-    private var headerSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Question ID: \(currentQuestion.id)")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                
-                if let lastAnswered = currentQuestion.lastAnsweredDate {
-                    Text(formatDate(lastAnswered))
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.8))
-                }
-            }
-            
-            Spacer()
-        }
-        .padding()
-        .background(
-            LinearGradient(
-                colors: [.indigo, .purple],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        )
-    }
-    
-    // 問題セクション
-    private var problemSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.indigo)
-                    .frame(width: 8, height: 8)
-                
-                Text("問題")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-            }
-            
-            Text(currentQuestion.problem)
-                .font(.body)
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.indigo, lineWidth: 2),
-                    alignment: .leading
-                )
-        }
-    }
-    
-    // 回答セクション
-    private var answerSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button {
-                withAnimation {
-                    showAnswer.toggle()
-                }
-            } label: {
-                HStack {
-                    Text(showAnswer ? "🔼 回答を隠す" : "🔽 回答を表示")
-                        .font(.headline)
-                        .fontWeight(.medium)
-                    
-                    Spacer()
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(showAnswer ? Color.indigo : Color.gray.opacity(0.2))
-                .foregroundStyle(showAnswer ? .white : .primary)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            
-            if showAnswer {
-                VStack(spacing: 12) {
-                    ForEach(Array(currentQuestion.answer.enumerated()), id: \.offset) { index, answer in
-                        Text(answer)
-                            .font(.body)
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.blue.opacity(0.1), Color.indigo.opacity(0.1)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.indigo.opacity(0.3), lineWidth: 1)
-                            )
-                    }
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+
+            if let lastAnswered = currentQuestion.lastAnsweredDate {
+                Text(formatDate(lastAnswered))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
         }
     }
-    
-    // メモセクション
-    private func memoSection(memo: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.orange)
-                    .frame(width: 8, height: 8)
-                
-                Text("メモ")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-            }
-            
-            Text(memo)
-                .font(.body)
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    LinearGradient(
-                        colors: [Color.orange.opacity(0.1), Color.yellow.opacity(0.1)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.orange, lineWidth: 2),
-                    alignment: .leading
-                )
-        }
-    }
-    
+
     // ステータスバッジ（ツールバー用）
     private var statusBadge: some View {
         HStack(spacing: 4) {
@@ -382,7 +289,7 @@ struct QuestionPageView: View {
         .background(statusColor)
         .clipShape(Capsule())
     }
-    
+
     // ステータスの色
     private var statusColor: Color {
         switch currentQuestion.isCorrect {
@@ -391,7 +298,7 @@ struct QuestionPageView: View {
         case .incorrect: return .red
         }
     }
-    
+
     // ステータスのアイコン
     private var statusIcon: String {
         switch currentQuestion.isCorrect {
@@ -400,12 +307,12 @@ struct QuestionPageView: View {
         case .incorrect: return "xmark.circle.fill"
         }
     }
-    
+
     // ステータスをサイクル
     private func cycleStatus() {
         // TODO: APIでステータスを更新
     }
-    
+
     // 日付フォーマット
     private func formatDate(_ dateString: String) -> String {
         let isoFormatter = ISO8601DateFormatter()
