@@ -1,10 +1,3 @@
-//
-//  CategoryService.swift
-//  smartphone-notification-app
-//
-//  Created by sora.sakamoto on 2026/07/17.
-//
-
 import Foundation
 import Combine
 
