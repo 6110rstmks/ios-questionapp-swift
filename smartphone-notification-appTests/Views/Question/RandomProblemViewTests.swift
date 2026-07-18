@@ -17,8 +17,11 @@ struct RandomProblemViewTests {
         )
     }
 
-    /// currentIndexをテストから読み書きできるようにするためのBinding
-    private func makeView(problemCount: Int, currentIndex: Int) -> (view: RandomProblemView, index: () -> Int) {
+    /// currentIndex/isPresentedをテストから読み書きできるようにするためのBinding
+    private func makeView(
+        problemCount: Int,
+        currentIndex: Int
+    ) -> (view: RandomProblemView, index: () -> Int, isPresented: () -> Bool) {
         let service = ProblemService()
         service.problems = (0..<problemCount).map(makeQuestion)
 
@@ -27,7 +30,11 @@ struct RandomProblemViewTests {
             get: { storedIndex },
             set: { storedIndex = $0 }
         )
-        let isPresentedBinding = Binding<Bool>(get: { true }, set: { _ in })
+        var storedIsPresented = true
+        let isPresentedBinding = Binding<Bool>(
+            get: { storedIsPresented },
+            set: { storedIsPresented = $0 }
+        )
 
         let view = RandomProblemView(
             problem: service.problems[currentIndex],
@@ -36,35 +43,35 @@ struct RandomProblemViewTests {
             isPresented: isPresentedBinding
         )
 
-        return (view, { storedIndex })
+        return (view, { storedIndex }, { storedIsPresented })
     }
 
     @Test func hasNextProblemIsTrueWhenMoreProblemsRemain() async throws {
-        let (view, _) = makeView(problemCount: 3, currentIndex: 0)
+        let (view, _, _) = makeView(problemCount: 3, currentIndex: 0)
 
         #expect(view.hasNextProblem)
     }
 
     @Test func hasNextProblemIsFalseOnLastProblem() async throws {
-        let (view, _) = makeView(problemCount: 3, currentIndex: 2)
+        let (view, _, _) = makeView(problemCount: 3, currentIndex: 2)
 
         #expect(!view.hasNextProblem)
     }
 
     @Test func hasPreviousProblemIsFalseOnFirstProblem() async throws {
-        let (view, _) = makeView(problemCount: 3, currentIndex: 0)
+        let (view, _, _) = makeView(problemCount: 3, currentIndex: 0)
 
         #expect(!view.hasPreviousProblem)
     }
 
     @Test func hasPreviousProblemIsTrueWhenNotOnFirstProblem() async throws {
-        let (view, _) = makeView(problemCount: 3, currentIndex: 1)
+        let (view, _, _) = makeView(problemCount: 3, currentIndex: 1)
 
         #expect(view.hasPreviousProblem)
     }
 
     @Test func goToNextAdvancesCurrentIndex() async throws {
-        let (view, index) = makeView(problemCount: 3, currentIndex: 0)
+        let (view, index, _) = makeView(problemCount: 3, currentIndex: 0)
 
         view.goToNext()
 
@@ -72,7 +79,7 @@ struct RandomProblemViewTests {
     }
 
     @Test func goToNextDoesNothingOnLastProblem() async throws {
-        let (view, index) = makeView(problemCount: 3, currentIndex: 2)
+        let (view, index, _) = makeView(problemCount: 3, currentIndex: 2)
 
         view.goToNext()
 
@@ -80,7 +87,7 @@ struct RandomProblemViewTests {
     }
 
     @Test func goToPreviousMovesBackCurrentIndex() async throws {
-        let (view, index) = makeView(problemCount: 3, currentIndex: 2)
+        let (view, index, _) = makeView(problemCount: 3, currentIndex: 2)
 
         view.goToPrevious()
 
@@ -88,7 +95,7 @@ struct RandomProblemViewTests {
     }
 
     @Test func goToPreviousDoesNothingOnFirstProblem() async throws {
-        let (view, index) = makeView(problemCount: 3, currentIndex: 0)
+        let (view, index, _) = makeView(problemCount: 3, currentIndex: 0)
 
         view.goToPrevious()
 
@@ -96,9 +103,17 @@ struct RandomProblemViewTests {
     }
 
     @Test func singleProblemHasNeitherNextNorPrevious() async throws {
-        let (view, _) = makeView(problemCount: 1, currentIndex: 0)
+        let (view, _, _) = makeView(problemCount: 1, currentIndex: 0)
 
         #expect(!view.hasNextProblem)
         #expect(!view.hasPreviousProblem)
+    }
+
+    @Test func finishPracticeDismissesTheView() async throws {
+        let (view, _, isPresented) = makeView(problemCount: 3, currentIndex: 2)
+
+        view.finishPractice()
+
+        #expect(isPresented() == false)
     }
 }

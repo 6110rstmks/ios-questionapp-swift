@@ -66,4 +66,21 @@ class QuestionService: ObservableObject {
             isLoading = false
         }
     }
+
+    // 問題の最終回答日を最新日に更新
+    func updateLastAnsweredDate(questionId: Int) async {
+        guard let url = URL(string: "\(baseURL)/update_last_answered_date/\(questionId)") else {
+            return
+        }
+
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "PUT"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            _ = try await session.data(for: request)
+        } catch {
+            // 記録更新の失敗は画面表示に影響させない
+        }
+    }
 }

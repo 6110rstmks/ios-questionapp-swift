@@ -138,7 +138,7 @@ struct RandomProblemView: View {
                 } else {
                     // 最後の問題では「次の問題」の代わりに終了ボタンを表示
                     Button {
-                        isPresented = false
+                        finishPractice()
                     } label: {
                         HStack {
                             Image(systemName: "checkmark.circle.fill")
@@ -185,6 +185,10 @@ struct RandomProblemView: View {
     // 右スワイプ / 「次の問題」ボタンで次へ
     func goToNext() {
         guard hasNextProblem else { return }
+        let answeredQuestionId = problem.id
+        Task {
+            await QuestionService().updateLastAnsweredDate(questionId: answeredQuestionId)
+        }
         withAnimation {
             currentIndex += 1
             showAnswer = false
@@ -198,6 +202,15 @@ struct RandomProblemView: View {
             currentIndex -= 1
             showAnswer = false
         }
+    }
+
+    // 最後の問題で「終了する」ボタンを押したとき
+    func finishPractice() {
+        let answeredQuestionId = problem.id
+        Task {
+            await QuestionService().updateLastAnsweredDate(questionId: answeredQuestionId)
+        }
+        isPresented = false
     }
 }
 

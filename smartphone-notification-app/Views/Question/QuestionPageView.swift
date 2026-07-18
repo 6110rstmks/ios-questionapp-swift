@@ -172,7 +172,7 @@ struct QuestionPageView: View {
                 } else {
                     // 最後の問題では「次の問題」の代わりに終了ボタンを表示
                     Button {
-                        dismiss()
+                        finishPractice()
                     } label: {
                         HStack {
                             Image(systemName: "checkmark.circle.fill")
@@ -234,6 +234,10 @@ struct QuestionPageView: View {
     // 右スワイプ / 「次の問題」ボタンで次へ
     func goToNext() {
         guard hasNext else { return }
+        let answeredQuestionId = currentQuestion.id
+        Task {
+            await QuestionService().updateLastAnsweredDate(questionId: answeredQuestionId)
+        }
         withAnimation {
             currentIndex += 1
         }
@@ -245,6 +249,15 @@ struct QuestionPageView: View {
         withAnimation {
             currentIndex -= 1
         }
+    }
+
+    // 最後の問題で「終了する」ボタンを押したとき
+    func finishPractice() {
+        let answeredQuestionId = currentQuestion.id
+        Task {
+            await QuestionService().updateLastAnsweredDate(questionId: answeredQuestionId)
+        }
+        dismiss()
     }
 
     // パンくずリスト

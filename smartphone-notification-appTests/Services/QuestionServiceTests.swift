@@ -69,4 +69,29 @@ struct QuestionServiceTests {
         #expect(service.questions.isEmpty)
         #expect(service.errorMessage != nil)
     }
+
+    @Test func updateLastAnsweredDateSendsPUTToExpectedURL() async throws {
+        var capturedURL: URL?
+        var capturedMethod: String?
+        let session = MockURLProtocol.makeSession { request in
+            capturedURL = request.url
+            capturedMethod = request.httpMethod
+            return (200, Data())
+        }
+        let service = QuestionService(session: session)
+
+        await service.updateLastAnsweredDate(questionId: 42)
+
+        #expect(capturedURL?.absoluteString.hasSuffix("/questions/update_last_answered_date/42") == true)
+        #expect(capturedMethod == "PUT")
+    }
+
+    @Test func updateLastAnsweredDateDoesNotThrowOnServerError() async throws {
+        let session = MockURLProtocol.makeSession(statusCode: 500, data: Data())
+        let service = QuestionService(session: session)
+
+        await service.updateLastAnsweredDate(questionId: 42)
+        // 例外を投げず、UIに影響を与える状態も変更しないことだけを確認する
+        #expect(service.errorMessage == nil)
+    }
 }
