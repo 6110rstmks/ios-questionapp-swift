@@ -36,31 +36,10 @@ struct ProblemServiceTests {
         #expect(service.errorMessage == nil)
     }
 
-    // URLSessionはPOSTのhttpBodyをhttpBodyStreamに変換して配送するため、両方を確認する
-    private func bodyData(from request: URLRequest) -> Data? {
-        if let body = request.httpBody {
-            return body
-        }
-        guard let stream = request.httpBodyStream else { return nil }
-
-        stream.open()
-        defer { stream.close() }
-
-        var data = Data()
-        let bufferSize = 4096
-        var buffer = [UInt8](repeating: 0, count: bufferSize)
-        while stream.hasBytesAvailable {
-            let bytesRead = stream.read(&buffer, maxLength: bufferSize)
-            guard bytesRead > 0 else { break }
-            data.append(buffer, count: bytesRead)
-        }
-        return data
-    }
-
     @Test func fetchProblemSendsRequestedParametersInBody() async throws {
         var capturedBody: [String: Any]?
         let session = MockURLProtocol.makeSession { request in
-            if let bodyData = self.bodyData(from: request) {
+            if let bodyData = httpBodyData(from: request) {
                 capturedBody = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
             }
             return (200, "[]".data(using: .utf8)!)
