@@ -59,4 +59,34 @@ struct SubcategoryServiceTests {
         #expect(service.subcategories.isEmpty)
         #expect(service.errorMessage != nil)
     }
+
+    @Test func createSubcategorySendsNameAndCategoryIdAndDecodesResponse() async throws {
+        var capturedURL: URL?
+        var capturedBody: [String: Any]?
+        let session = MockURLProtocol.makeSession { request in
+            capturedURL = request.url
+            if let bodyData = httpBodyData(from: request) {
+                capturedBody = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
+            }
+            return (201, #"{"id": 5, "name": "新しいサブカテゴリ", "category_id": 10}"#.data(using: .utf8)!)
+        }
+        let service = SubcategoryService(session: session)
+
+        let created = await service.createSubcategory(name: "新しいサブカテゴリ", categoryId: 10)
+
+        #expect(created?.id == 5)
+        #expect(created?.categoryId == 10)
+        #expect(capturedURL?.absoluteString.hasSuffix("/subcategories/") == true)
+        #expect(capturedBody?["name"] as? String == "新しいサブカテゴリ")
+        #expect(capturedBody?["category_id"] as? Int == 10)
+    }
+
+    @Test func createSubcategoryReturnsNilOnServerError() async throws {
+        let session = MockURLProtocol.makeSession(statusCode: 500, data: Data())
+        let service = SubcategoryService(session: session)
+
+        let created = await service.createSubcategory(name: "新しいサブカテゴリ", categoryId: 10)
+
+        #expect(created == nil)
+    }
 }

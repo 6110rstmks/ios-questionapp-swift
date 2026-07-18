@@ -71,4 +71,30 @@ class SubcategoryService: ObservableObject {
             isLoading = false
         }
     }
+
+    // 新しいサブカテゴリを作成
+    func createSubcategory(name: String, categoryId: Int) async -> Subcategory? {
+        guard let url = URL(string: "\(baseURL)/") else {
+            return nil
+        }
+
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            let body: [String: Any] = ["name": name, "category_id": categoryId]
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+            let (data, response) = try await session.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                return nil
+            }
+
+            return try JSONDecoder().decode(Subcategory.self, from: data)
+
+        } catch {
+            return nil
+        }
+    }
 }

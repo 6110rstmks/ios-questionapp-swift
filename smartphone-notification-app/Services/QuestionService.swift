@@ -83,4 +83,35 @@ class QuestionService: ObservableObject {
             // 記録更新の失敗は画面表示に影響させない
         }
     }
+
+    // 新しい問題を作成
+    func createQuestion(problem: String, answer: [String], memo: String, categoryId: Int, subcategoryId: Int) async -> Bool {
+        guard let url = URL(string: baseURL) else {
+            return false
+        }
+
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            let body: [String: Any] = [
+                "problem": problem,
+                "answer": answer,
+                "memo": memo,
+                "category_id": categoryId,
+                "subcategory_id": subcategoryId
+            ]
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+            let (_, response) = try await session.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return false
+            }
+            return (200...299).contains(httpResponse.statusCode)
+
+        } catch {
+            return false
+        }
+    }
 }

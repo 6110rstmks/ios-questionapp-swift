@@ -110,4 +110,28 @@ class CategoryService: ObservableObject {
             isLoadingMore = false
         }
     }
+
+    // 新しいカテゴリを作成
+    func createCategory(name: String) async -> Bool {
+        guard let url = URL(string: "\(baseURL)/categories") else {
+            return false
+        }
+
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONEncoder().encode(["name": name])
+
+            let (_, response) = try await session.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return false
+            }
+            return (200...299).contains(httpResponse.statusCode)
+
+        } catch {
+            return false
+        }
+    }
 }

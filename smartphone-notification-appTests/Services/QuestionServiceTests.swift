@@ -94,4 +94,48 @@ struct QuestionServiceTests {
         // 例外を投げず、UIに影響を与える状態も変更しないことだけを確認する
         #expect(service.errorMessage == nil)
     }
+
+    @Test func createQuestionSendsExpectedBodyAndURL() async throws {
+        var capturedURL: URL?
+        var capturedBody: [String: Any]?
+        let session = MockURLProtocol.makeSession { request in
+            capturedURL = request.url
+            if let bodyData = httpBodyData(from: request) {
+                capturedBody = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
+            }
+            return (201, Data())
+        }
+        let service = QuestionService(session: session)
+
+        let success = await service.createQuestion(
+            problem: "1 + 1 = ?",
+            answer: ["2"],
+            memo: "メモ",
+            categoryId: 10,
+            subcategoryId: 20
+        )
+
+        #expect(success)
+        #expect(capturedURL?.absoluteString.hasSuffix("/api/questions") == true)
+        #expect(capturedBody?["problem"] as? String == "1 + 1 = ?")
+        #expect(capturedBody?["answer"] as? [String] == ["2"])
+        #expect(capturedBody?["memo"] as? String == "メモ")
+        #expect(capturedBody?["category_id"] as? Int == 10)
+        #expect(capturedBody?["subcategory_id"] as? Int == 20)
+    }
+
+    @Test func createQuestionReturnsFalseOnServerError() async throws {
+        let session = MockURLProtocol.makeSession(statusCode: 500, data: Data())
+        let service = QuestionService(session: session)
+
+        let success = await service.createQuestion(
+            problem: "1 + 1 = ?",
+            answer: ["2"],
+            memo: "",
+            categoryId: 10,
+            subcategoryId: 20
+        )
+
+        #expect(!success)
+    }
 }

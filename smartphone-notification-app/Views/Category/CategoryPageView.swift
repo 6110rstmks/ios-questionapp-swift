@@ -12,6 +12,8 @@ struct CategoryPageView: View {
     @StateObject private var service = SubcategoryService()
     @State private var searchText = ""
     @State private var showDatePicker = false
+    @State private var showCreateSubcategoryAlert = false
+    @State private var newSubcategoryName = ""
     
     var body: some View {
         VStack(spacing: 0) {
@@ -127,6 +129,15 @@ struct CategoryPageView: View {
             
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    newSubcategoryName = ""
+                    showCreateSubcategoryAlert = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
                     Task {
                         await service.fetchSubcategories(byCategoryId: category.id, searchWord: searchText)
                     }
@@ -135,8 +146,27 @@ struct CategoryPageView: View {
                 }
             }
         }
+        .alert("新しいサブカテゴリ", isPresented: $showCreateSubcategoryAlert) {
+            TextField("サブカテゴリ名", text: $newSubcategoryName)
+            Button("作成") {
+                Task { await createSubcategory() }
+            }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("サブカテゴリ名を入力してください")
+        }
         .sheet(isPresented: $showDatePicker) {
             SimpleDatePickerView(category: category)
+        }
+    }
+
+    private func createSubcategory() async {
+        let name = newSubcategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+
+        let created = await service.createSubcategory(name: name, categoryId: category.id)
+        if created != nil {
+            await service.fetchSubcategories(byCategoryId: category.id, searchWord: searchText)
         }
     }
 }

@@ -98,4 +98,32 @@ struct CategoryServiceTests {
         #expect(service.categories.isEmpty)
         #expect(service.errorMessage == "データの形式が正しくありません")
     }
+
+    @Test func createCategorySendsNameAndExpectedURL() async throws {
+        var capturedURL: URL?
+        var capturedBody: [String: Any]?
+        let session = MockURLProtocol.makeSession { request in
+            capturedURL = request.url
+            if let bodyData = httpBodyData(from: request) {
+                capturedBody = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
+            }
+            return (201, Data())
+        }
+        let service = CategoryService(session: session)
+
+        let success = await service.createCategory(name: "新しいカテゴリ")
+
+        #expect(success)
+        #expect(capturedURL?.absoluteString.hasSuffix("/api/categories") == true)
+        #expect(capturedBody?["name"] as? String == "新しいカテゴリ")
+    }
+
+    @Test func createCategoryReturnsFalseOnServerError() async throws {
+        let session = MockURLProtocol.makeSession(statusCode: 500, data: Data())
+        let service = CategoryService(session: session)
+
+        let success = await service.createCategory(name: "新しいカテゴリ")
+
+        #expect(!success)
+    }
 }

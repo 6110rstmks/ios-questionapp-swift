@@ -3,6 +3,8 @@ import SwiftUI
 struct CategoryListView: View {
     @StateObject private var service = CategoryService()
     @State private var searchText = ""
+    @State private var showCreateCategoryAlert = false
+    @State private var newCategoryName = ""
     
     // 検索でフィルタリングされたカテゴリ
     var filteredCategories: [SimplifiedCategory] {
@@ -113,6 +115,15 @@ struct CategoryListView: View {
                 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        newCategoryName = ""
+                        showCreateCategoryAlert = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         Task {
                             await service.fetchCategories()
                         }
@@ -121,8 +132,27 @@ struct CategoryListView: View {
                     }
                 }
             }
+            .alert("新しいカテゴリ", isPresented: $showCreateCategoryAlert) {
+                TextField("カテゴリ名", text: $newCategoryName)
+                Button("作成") {
+                    Task { await createCategory() }
+                }
+                Button("キャンセル", role: .cancel) {}
+            } message: {
+                Text("カテゴリ名を入力してください")
+            }
         }
         .task {
+            await service.fetchCategories()
+        }
+    }
+
+    private func createCategory() async {
+        let name = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+
+        let success = await service.createCategory(name: name)
+        if success {
             await service.fetchCategories()
         }
     }

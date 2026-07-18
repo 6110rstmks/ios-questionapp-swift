@@ -13,7 +13,8 @@ struct SubcategoryPageView: View {
     @StateObject private var questionService = QuestionService()
     @State private var showAnswer = false
     @State private var searchText = ""
-    
+    @State private var showCreateQuestion = false
+
     // 統計情報を計算
     var questionCount: Int {
         questionService.questions.count
@@ -134,11 +135,30 @@ struct SubcategoryPageView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    showCreateQuestion = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
                     Task {
                         await questionService.fetchQuestionsBySubcategoryId(subcategory.id)
                     }
                 } label: {
                     Image(systemName: "arrow.clockwise")
+                }
+            }
+        }
+        .sheet(isPresented: $showCreateQuestion) {
+            CreateQuestionView(
+                category: category,
+                subcategory: subcategory,
+                questionService: questionService
+            ) {
+                Task {
+                    await questionService.fetchQuestionsBySubcategoryId(subcategory.id)
                 }
             }
         }
