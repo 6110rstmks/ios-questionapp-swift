@@ -114,4 +114,34 @@ class QuestionService: ObservableObject {
             return false
         }
     }
+
+    // 既存の問題を更新
+    func updateQuestion(questionId: Int, problem: String, answer: [String], memo: String, isCorrect: Int) async -> Bool {
+        guard let url = URL(string: "\(baseURL)/\(questionId)") else {
+            return false
+        }
+
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "PUT"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            let body: [String: Any] = [
+                "problem": problem,
+                "answer": answer,
+                "memo": memo,
+                "is_correct": isCorrect
+            ]
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+            let (_, response) = try await session.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return false
+            }
+            return (200...299).contains(httpResponse.statusCode)
+
+        } catch {
+            return false
+        }
+    }
 }

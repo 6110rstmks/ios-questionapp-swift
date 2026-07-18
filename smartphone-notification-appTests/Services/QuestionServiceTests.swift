@@ -138,4 +138,50 @@ struct QuestionServiceTests {
 
         #expect(!success)
     }
+
+    @Test func updateQuestionSendsPUTWithExpectedBodyAndURL() async throws {
+        var capturedURL: URL?
+        var capturedMethod: String?
+        var capturedBody: [String: Any]?
+        let session = MockURLProtocol.makeSession { request in
+            capturedURL = request.url
+            capturedMethod = request.httpMethod
+            if let bodyData = httpBodyData(from: request) {
+                capturedBody = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
+            }
+            return (200, Data())
+        }
+        let service = QuestionService(session: session)
+
+        let success = await service.updateQuestion(
+            questionId: 42,
+            problem: "更新後の問題文",
+            answer: ["回答1", "回答2"],
+            memo: "更新後のメモ",
+            isCorrect: SolutionStatus.correct.rawValue
+        )
+
+        #expect(success)
+        #expect(capturedMethod == "PUT")
+        #expect(capturedURL?.absoluteString.hasSuffix("/questions/42") == true)
+        #expect(capturedBody?["problem"] as? String == "更新後の問題文")
+        #expect(capturedBody?["answer"] as? [String] == ["回答1", "回答2"])
+        #expect(capturedBody?["memo"] as? String == "更新後のメモ")
+        #expect(capturedBody?["is_correct"] as? Int == SolutionStatus.correct.rawValue)
+    }
+
+    @Test func updateQuestionReturnsFalseOnServerError() async throws {
+        let session = MockURLProtocol.makeSession(statusCode: 500, data: Data())
+        let service = QuestionService(session: session)
+
+        let success = await service.updateQuestion(
+            questionId: 42,
+            problem: "問題文",
+            answer: ["回答"],
+            memo: "",
+            isCorrect: SolutionStatus.incorrect.rawValue
+        )
+
+        #expect(!success)
+    }
 }

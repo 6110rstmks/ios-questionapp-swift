@@ -10,11 +10,13 @@ import SwiftUI
 struct QuestionPageView: View {
     let category: Category
     let subcategory: Subcategory
-    let allQuestions: [Question]
+    @State private var allQuestions: [Question]
     @State private var currentIndex: Int
 
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var questionService = QuestionService()
     @State private var showAnswer = false
+    @State private var showEditQuestion = false
 
     init(category: Category, subcategory: Subcategory, question: Question, allQuestions: [Question] = []) {
         self.category = category
@@ -22,10 +24,10 @@ struct QuestionPageView: View {
 
         // allQuestionsが空の場合は1つだけの配列を作る
         if allQuestions.isEmpty {
-            self.allQuestions = [question]
+            self._allQuestions = State(initialValue: [question])
             self._currentIndex = State(initialValue: 0)
         } else {
-            self.allQuestions = allQuestions
+            self._allQuestions = State(initialValue: allQuestions)
             // 現在の問題のインデックスを見つける
             if let index = allQuestions.firstIndex(where: { $0.id == question.id }) {
                 self._currentIndex = State(initialValue: index)
@@ -205,9 +207,23 @@ struct QuestionPageView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("終了") {
-                    dismiss()
+                Button {
+                    showEditQuestion = true
+                } label: {
+                    Image(systemName: "pencil")
                 }
+            }
+        }
+        .sheet(isPresented: $showEditQuestion) {
+            QuestionEditView(
+                questionId: currentQuestion.id,
+                problem: currentQuestion.problem,
+                answers: currentQuestion.answer,
+                memo: currentQuestion.memo ?? "",
+                isCorrect: currentQuestion.isCorrect,
+                questionService: questionService
+            ) { problem, answer, memo in
+                updateCurrentQuestion(problem: problem, answer: answer, memo: memo)
             }
         }
         .contentShape(Rectangle())
@@ -236,7 +252,7 @@ struct QuestionPageView: View {
         guard hasNext else { return }
         let answeredQuestionId = currentQuestion.id
         Task {
-            await QuestionService().updateLastAnsweredDate(questionId: answeredQuestionId)
+            await questionService.updateLastAnsweredDate(questionId: answeredQuestionId)
         }
         withAnimation {
             currentIndex += 1
@@ -255,9 +271,22 @@ struct QuestionPageView: View {
     func finishPractice() {
         let answeredQuestionId = currentQuestion.id
         Task {
-            await QuestionService().updateLastAnsweredDate(questionId: answeredQuestionId)
+            await questionService.updateLastAnsweredDate(questionId: answeredQuestionId)
         }
         dismiss()
+    }
+
+    // 編集モーダルで保存されたら表示中の問題を更新する
+    private func updateCurrentQuestion(problem: String, answer: [String], memo: String) {
+        allQuestions[currentIndex] = Question(
+            id: currentQuestion.id,
+            problem: problem,
+            answer: answer,
+            memo: memo.isEmpty ? nil : memo,
+            isCorrect: currentQuestion.isCorrect,
+            answerCount: currentQuestion.answerCount,
+            lastAnsweredDate: currentQuestion.lastAnsweredDate
+        )
     }
 
     // パンくずリスト
