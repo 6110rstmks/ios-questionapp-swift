@@ -52,16 +52,14 @@ struct RandomProblemView: View {
                 // 回答セクション
                 VStack(alignment: .leading, spacing: 12) {
                     Button {
-                        withAnimation {
-                            showAnswer.toggle()
-                        }
+                        showAnswer.toggle()
                     } label: {
                         HStack {
                             Text(showAnswer ? "回答を隠す" : "回答を表示")
                                 .font(.headline)
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: showAnswer ? "eye.slash" : "eye")
                         }
                         .padding()
@@ -69,7 +67,7 @@ struct RandomProblemView: View {
                         .foregroundStyle(showAnswer ? .white : .primary)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    
+
                     if showAnswer {
                         VStack(spacing: 8) {
                             ForEach(Array(problem.answer.enumerated()), id: \.offset) { index, answer in
@@ -81,7 +79,6 @@ struct RandomProblemView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
                         }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
                 

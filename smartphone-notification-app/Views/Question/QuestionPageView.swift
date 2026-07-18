@@ -86,9 +86,7 @@ struct QuestionPageView: View {
                 // 回答セクション
                 VStack(alignment: .leading, spacing: 12) {
                     Button {
-                        withAnimation {
-                            showAnswer.toggle()
-                        }
+                        showAnswer.toggle()
                     } label: {
                         HStack {
                             Text(showAnswer ? "回答を隠す" : "回答を表示")
@@ -115,7 +113,6 @@ struct QuestionPageView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
                         }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
 
