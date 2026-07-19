@@ -3,19 +3,17 @@ import SwiftUI
 struct CategoryListView: View {
     @StateObject private var service = CategoryService()
     @State private var searchText = ""
+    @State private var searchTask: Task<Void, Never>?
     @State private var showCreateCategoryAlert = false
     @State private var newCategoryName = ""
-    
-    // 検索でフィルタリングされたカテゴリ
-    var filteredCategories: [SimplifiedCategory] {
-        if searchText.isEmpty {
-            return service.categories
-        }
-        return service.categories.filter { category in
-            category.name.localizedCaseInsensitiveContains(searchText)
+
+    // アルファベット（辞書）順に並べたカテゴリ。無限スクロールの「あと3件」判定もこの並びを基準にする
+    var sortedCategories: [SimplifiedCategory] {
+        service.categories.sorted {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
         }
     }
-    
+
     var body: some View {
         NavigationStack {
             Group {
@@ -45,7 +43,7 @@ struct CategoryListView: View {
                         systemImage: "list.bullet",
                         description: Text("カテゴリが見つかりませんでした")
                     )
-                } else if filteredCategories.isEmpty {
+                } else if sortedCategories.isEmpty {
                     // 検索結果が空の場合
                     ContentUnavailableView(
                         "検索結果がありません",
@@ -54,27 +52,24 @@ struct CategoryListView: View {
                     )
                 } else {
                     List {
-                        ForEach(filteredCategories) { category in
+                        ForEach(sortedCategories) { category in
                             NavigationLink {
                                 CategoryPageView(category: convertToFullCategory(category))
                             } label: {
                                 SimpleCategoryRow(category: category)
                             }
                             .onAppear {
-                                // 検索中は自動読み込みを無効化
-                                guard searchText.isEmpty else { return }
-                                
-                                // 最後から3番目の要素が表示されたら次のページを読み込む
-                                if category.id == service.categories[max(0, service.categories.count - 3)].id {
+                                // 表示順（アルファベット順）で最後から3番目が見えたら次のページを読み込む
+                                // 検索中でもサーバー側で絞り込んだ続きを取得できる
+                                if category.id == sortedCategories[max(0, sortedCategories.count - 3)].id {
                                     Task {
                                         await service.loadMoreCategories()
                                     }
                                 }
                             }
                         }
-                        
-                        // ローディングインジケーター（検索中は非表示）
-                        if service.isLoadingMore && searchText.isEmpty {
+
+                        if service.isLoadingMore {
                             HStack {
                                 Spacer()
                                 ProgressView()
@@ -82,9 +77,8 @@ struct CategoryListView: View {
                                 Spacer()
                             }
                         }
-                        
-                        // 全て読み込み完了メッセージ（検索中は非表示）
-                        if !service.hasMoreData && !service.categories.isEmpty && searchText.isEmpty {
+
+                        if !service.hasMoreData && !service.categories.isEmpty {
                             HStack {
                                 Spacer()
                                 Text("全てのカテゴリを読み込みました")
@@ -104,6 +98,15 @@ struct CategoryListView: View {
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "カテゴリを検索"
             )
+            .onChange(of: searchText) { _, newValue in
+                // 入力のたびに叩かないよう少し待ってからサーバー側で検索する（未読み込みのカテゴリも対象になる）
+                searchTask?.cancel()
+                searchTask = Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    guard !Task.isCancelled else { return }
+                    await service.fetchCategories(searchWord: newValue)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
@@ -125,7 +128,7 @@ struct CategoryListView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task {
-                            await service.fetchCategories()
+                            await service.fetchCategories(searchWord: searchText)
                         }
                     } label: {
                         Image(systemName: "arrow.clockwise")
@@ -153,7 +156,7 @@ struct CategoryListView: View {
 
         let success = await service.createCategory(name: name)
         if success {
-            await service.fetchCategories()
+            await service.fetchCategories(searchWord: searchText)
         }
     }
     

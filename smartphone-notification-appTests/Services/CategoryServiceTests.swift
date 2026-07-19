@@ -126,4 +126,60 @@ struct CategoryServiceTests {
 
         #expect(!success)
     }
+
+    @Test func fetchCategoriesSendsSearchWordAsCategoryWordQueryParam() async throws {
+        var capturedURL: URL?
+        let session = MockURLProtocol.makeSession { request in
+            capturedURL = request.url
+            return (200, self.categoryJSON(idsStartingAt: 0, count: 1))
+        }
+        let service = CategoryService(session: session)
+
+        await service.fetchCategories(searchWord: "数学")
+
+        let queryValue = capturedURL.flatMap {
+            URLComponents(url: $0, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "categoryWord" })?.value
+        }
+        #expect(queryValue == "数学")
+    }
+
+    @Test func loadMoreCategoriesKeepsUsingTheActiveSearchWord() async throws {
+        var capturedCategoryWords: [String] = []
+        let session = MockURLProtocol.makeSession { request in
+            let word = request.url
+                .flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }
+                .flatMap { $0.queryItems?.first(where: { $0.name == "categoryWord" })?.value } ?? ""
+            capturedCategoryWords.append(word)
+
+            let skip = self.skip(from: request)
+            if skip == 0 {
+                return (200, self.categoryJSON(idsStartingAt: 0, count: 20))
+            } else {
+                return (200, self.categoryJSON(idsStartingAt: 20, count: 5))
+            }
+        }
+        let service = CategoryService(session: session)
+
+        await service.fetchCategories(searchWord: "数学")
+        await service.loadMoreCategories()
+
+        #expect(capturedCategoryWords == ["数学", "数学"])
+        #expect(service.categories.count == 25)
+    }
+
+    @Test func fetchCategoriesWithEmptySearchWordSendsEmptyCategoryWord() async throws {
+        var capturedURL: URL?
+        let session = MockURLProtocol.makeSession { request in
+            capturedURL = request.url
+            return (200, self.categoryJSON(idsStartingAt: 0, count: 1))
+        }
+        let service = CategoryService(session: session)
+
+        await service.fetchCategories()
+
+        let queryValue = capturedURL.flatMap {
+            URLComponents(url: $0, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "categoryWord" })?.value
+        }
+        #expect(queryValue == "" || queryValue == nil)
+    }
 }

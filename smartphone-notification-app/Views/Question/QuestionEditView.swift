@@ -34,8 +34,7 @@ struct QuestionEditView: View {
     }
 
     private var isValid: Bool {
-        !problem.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        answers.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        !problem.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
@@ -92,7 +91,7 @@ struct QuestionEditView: View {
                     Button("保存") {
                         Task { await save() }
                     }
-                    .disabled(!isValid || isSaving)
+                    .disabled(isSaving)
                 }
             }
             .overlay {
@@ -104,6 +103,11 @@ struct QuestionEditView: View {
     }
 
     private func save() async {
+        guard isValid else {
+            errorMessage = "問題文を入力してください"
+            return
+        }
+
         isSaving = true
         errorMessage = nil
 

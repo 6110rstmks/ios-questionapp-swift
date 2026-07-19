@@ -245,6 +245,14 @@ struct QuestionPageView: View {
             // インデックスが変わったら回答を隠す
             showAnswer = false
         }
+        .onDisappear {
+            // 戻るボタン/スワイプなど、次へ・終了ボタンを経由しない離脱でも
+            // 表示していた問題の最終回答日を確実に更新する
+            let answeredQuestionId = currentQuestion.id
+            Task {
+                await questionService.updateLastAnsweredDate(questionId: answeredQuestionId)
+            }
+        }
     }
 
     // 右スワイプ / 「次の問題」ボタンで次へ
@@ -269,10 +277,7 @@ struct QuestionPageView: View {
 
     // 最後の問題で「終了する」ボタンを押したとき
     func finishPractice() {
-        let answeredQuestionId = currentQuestion.id
-        Task {
-            await questionService.updateLastAnsweredDate(questionId: answeredQuestionId)
-        }
+        // 最終回答日の更新はonDisappearで行う
         dismiss()
     }
 

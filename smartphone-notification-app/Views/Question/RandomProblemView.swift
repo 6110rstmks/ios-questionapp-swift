@@ -6,6 +6,7 @@ struct RandomProblemView: View {
     @ObservedObject var problemService: ProblemService
     @Binding var currentIndex: Int
     @Binding var isPresented: Bool
+    @StateObject private var questionService = QuestionService()
     @State private var showAnswer = false
     
     var hasNextProblem: Bool {
@@ -180,6 +181,14 @@ struct RandomProblemView: View {
         )
         // 右スワイプが標準の「戻る」ジェスチャーとして誤認識されないよう無効化する
         .background(DisableInteractivePopGesture())
+        .onDisappear {
+            // 終了ボタン/戻るボタン/スワイプなど、どの経路で離脱しても
+            // 表示していた問題の最終回答日を確実に更新する
+            let answeredQuestionId = problem.id
+            Task {
+                await questionService.updateLastAnsweredDate(questionId: answeredQuestionId)
+            }
+        }
     }
 
     // 右スワイプ / 「次の問題」ボタンで次へ
@@ -187,7 +196,7 @@ struct RandomProblemView: View {
         guard hasNextProblem else { return }
         let answeredQuestionId = problem.id
         Task {
-            await QuestionService().updateLastAnsweredDate(questionId: answeredQuestionId)
+            await questionService.updateLastAnsweredDate(questionId: answeredQuestionId)
         }
         withAnimation {
             currentIndex += 1
@@ -206,10 +215,7 @@ struct RandomProblemView: View {
 
     // 最後の問題で「終了する」ボタンを押したとき
     func finishPractice() {
-        let answeredQuestionId = problem.id
-        Task {
-            await QuestionService().updateLastAnsweredDate(questionId: answeredQuestionId)
-        }
+        // 最終回答日の更新はonDisappearで行う
         isPresented = false
     }
 }

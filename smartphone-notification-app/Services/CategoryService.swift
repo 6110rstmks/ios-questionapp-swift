@@ -26,34 +26,37 @@ class CategoryService: ObservableObject {
     private let baseURL = "http://52.69.161.160/api"
     private let pageSize = 20 // 1回で取得する件数
     private var currentPage = 0
+    private var currentSearchWord = ""
     private let session: URLSession
 
     init(session: URLSession = .cookieEnabled) {
         self.session = session
     }
-    
-    // 最初のページを取得
-    func fetchCategories() async {
+
+    // 最初のページを取得（検索語を指定すると、サーバー側で全カテゴリを対象に絞り込む）
+    func fetchCategories(searchWord: String = "") async {
         categories = []
         currentPage = 0
         hasMoreData = true
+        currentSearchWord = searchWord
         await loadMoreCategories()
     }
-    
-    // 追加のカテゴリを取得（ページネーション）
+
+    // 追加のカテゴリを取得（ページネーション。検索中は現在の検索語を引き続き使う）
     func loadMoreCategories() async {
         guard !isLoading && !isLoadingMore && hasMoreData else { return }
-        
+
         if currentPage == 0 {
             isLoading = true
         } else {
             isLoadingMore = true
         }
-        
+
         errorMessage = nil
-        
+
         let skip = currentPage * pageSize
-        guard let url = URL(string: "\(baseURL)/categories/home?skip=\(skip)&limit=\(pageSize)&categoryWord=&subcategoryWord=&questionWord=&answerWord=") else {
+        let encodedWord = currentSearchWord.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        guard let url = URL(string: "\(baseURL)/categories/home?skip=\(skip)&limit=\(pageSize)&categoryWord=\(encodedWord)&subcategoryWord=&questionWord=&answerWord=") else {
             errorMessage = "無効なURLです"
             isLoading = false
             isLoadingMore = false
